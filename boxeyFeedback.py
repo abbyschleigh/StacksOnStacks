@@ -242,3 +242,58 @@ def boxey_feedback(table, n_boxes, frequency, filterType, weights='uniform', spl
     np.savetxt(f'boxed_script/{name}/{name}_chi2.txt', np.array([chi]))
 
     return c_d, chi
+
+
+def high_low_split(table, split_property, fixed_properties=['Z','LOGM'], n_boxes=100):
+    """
+    Bin objects into boxes by their fixed properties, then label each as
+    high or low relative to its box's median in the split property.
+
+    Objects are clustered into ``n_boxes`` groups via k-means on the
+    ``fixed_properties`` (e.g. redshift and stellar mass), so that each box
+    contains objects with similar values of those properties. Within each
+    box, objects are split at the median of ``split_property``: those at or
+    above the median are labeled ``high_<split_property>`` and those below
+    are labeled ``low_<split_property>``. This controls for the fixed
+    properties when comparing high- and low-split populations.
+
+    Parameters
+    ----------
+    table : Table
+        Input catalog containing ``split_property`` and all
+        ``fixed_properties`` as columns. Not modified; a copy is returned.
+    split_property : str
+        Column name on which the high/low median split is performed.
+    fixed_properties : list of str, optional
+        Column names used as features for k-means clustering into boxes.
+        Default ``['Z', 'LOGM']``.
+    n_boxes : int, optional
+        Number of k-means clusters (boxes) to form. Default 100.
+
+    Returns
+    -------
+    Table
+        A copy of the input table with two added columns:
+        ``'box'`` (int), the cluster index for each object, and
+        ``'split'`` (str), either ``high_<split_property>`` or
+        ``low_<split_property>``.
+
+    Notes
+    -----
+    Objects with ``split_property`` exactly equal to the box median are
+    assigned to the high group. The ``fixed_properties`` are passed to
+    k-means on their raw scales; consider standardizing them beforehand if
+    they span very different ranges.
+    """
+    table = table.copy()
+    data = np.vstack([table[p] for p in fixed_properties]).T
+    centroids, _ = kmeans(data, n_boxes)
+    labels, _ = vq(data, centroids)
+    table['box'] = labels
+    table['split'] = f'high_{split_property}'
+    for i in range(n_boxes):
+        in_box = (table['box'] == i)
+        med = np.median(table[split_property][in_box])
+        is_low = in_box & (table[split_property] < med)
+        table['split'][is_low] = f'low_{split_property}'
+    return table

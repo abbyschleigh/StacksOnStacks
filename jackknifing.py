@@ -17,6 +17,14 @@ def jackknife_weighted_mean_cov_fast2(X1, w1, X2, w2):
         cov22: (d2, d2) covariance of mean2
         cov12: (d1, d2) cross-covariance between mean1 and mean2
     '''
+    nsamp1 = X1.shape[0]
+    nsamp2 = X2.shape[0]
+    if nsamp1 != nsamp2:
+        w1 = w1[:min(nsamp1, nsamp2)]
+        w2 = w2[:min(nsamp1, nsamp2)]
+        X1 = X1[:min(nsamp1, nsamp2)]
+        X2 = X2[:min(nsamp1, nsamp2)]
+        
     n = X1.shape[0]
     d1 = X1.shape[1]
     d2 = X2.shape[1]
