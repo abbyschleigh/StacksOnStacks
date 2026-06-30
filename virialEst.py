@@ -2,6 +2,7 @@ import numpy as np
 from astropy.cosmology import FlatLambdaCDM
 import astropy.units as u
 from astropy.constants import G
+from scipy.interpolate import LinearNDInterpolator
 
 def vr_from_mass(m, z, overdensity=200):
     #shout out https://en.wikipedia.org/wiki/Virial_mass, there are papers for it though
@@ -44,17 +45,20 @@ def mh2ms(M_h, z):
     result = 10**log10_M_star
     return result
 
-def ms2mh(M_star, z):
-    if M_star.shape >= (100,):
-        dim=len(M_star)*3
-    else:
-        dim=200
-    mh_grid = 10**np.linspace(10, 20, dim)
-    ms_grid = mh2ms(mh_grid, z)
+def ms2mh(m_star_arr, z_arr, z_min=0.0, z_max=2.0, mh_min=1, mh_max=1e16):
+    z_grid = np.linspace(z_min, z_max, 200)
+    log10_mh_grid = np.linspace(np.log10(mh_min), np.log10(mh_max), 200)
     
-    log10_ms_grid = np.log10(ms_grid)
-    log10_mh_grid = np.linspace(10, 20, dim)
+    Z_mesh, MH_mesh = np.meshgrid(z_grid, 10**log10_mh_grid, indexing='ij')
     
-    log10_ms_targets = np.log10(M_star)
+    MS_mesh = mh2ms(MH_mesh, Z_mesh)
     
-    return 10**np.interp(log10_ms_targets, log10_ms_grid, log10_mh_grid)
+    points = np.vstack([Z_mesh.ravel(), np.log10(MS_mesh).ravel()]).T
+    values = np.log10(MH_mesh).ravel() # had to flatten it or scipy would through a fit
+    
+    interp_2d = LinearNDInterpolator(points, values)
+    
+    query_points = np.vstack([z_arr, np.log10(m_star_arr)]).T
+    
+    log10_mh_results = interp_2d(query_points)
+    return 10**log10_mh_results
