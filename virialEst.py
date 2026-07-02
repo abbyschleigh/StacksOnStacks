@@ -6,11 +6,12 @@ from scipy.interpolate import LinearNDInterpolator
 
 def vr_from_mass(m, z, overdensity=200):
     #shout out https://en.wikipedia.org/wiki/Virial_mass, there are papers for it though
+    # make sure the units of m is stelar mass, not log(stellarmass) 
     cosmo = FlatLambdaCDM(H0=67.7, Om0=0.31)
 
     rho_crit = cosmo.critical_density(z)
     
-    m_halo = np.array(m) * 100 * u.solMass
+    m_halo = np.array(m) * u.solMass
     r_cubed = (3 * m_halo) / (4 * np.pi * overdensity * rho_crit)
     r = r_cubed**(1/3) # kpc
     
@@ -45,7 +46,7 @@ def mh2ms(M_h, z):
     result = 10**log10_M_star
     return result
 
-def ms2mh(m_star_arr, z_arr, z_min=0.0, z_max=2.0, mh_min=1, mh_max=1e16):
+def ms2mh(m_star_arr, z_arr, z_min=0.0, z_max=3.5, mh_min=1e9, mh_max=1e16):
     z_grid = np.linspace(z_min, z_max, 200)
     log10_mh_grid = np.linspace(np.log10(mh_min), np.log10(mh_max), 200)
     
