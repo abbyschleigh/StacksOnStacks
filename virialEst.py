@@ -35,9 +35,11 @@ def mh2ms(M_h, z):
     def f(x):
         term1 = -np.log10(10**(alpha * x) + 1.0)
         
-        log10_1_exp_x = np.log10(1 + np.exp(x))
+        log10_1_exp_x = np.log10(1 + np.exp(np.clip(x, -20, 20))) # clipping so we remove overflow issue
 
-        term2 = delta * (log10_1_exp_x**gamma) / (1.0 + np.exp(10**(-x)))
+        safe_power = np.clip(10**(-np.clip(x, -10, 10)), None, 700)
+        
+        term2 = delta * (log10_1_exp_x**gamma) / (1.0 + np.exp(safe_power))
         return term1 + term2
 
     x = np.log10(M_h / M1)
@@ -46,7 +48,7 @@ def mh2ms(M_h, z):
     result = 10**log10_M_star
     return result
 
-def ms2mh(m_star_arr, z_arr, z_min=0.0, z_max=3.5, mh_min=1e9, mh_max=1e16):
+def ms2mh(m_star_arr, z_arr, z_min=0.0, z_max=6, mh_min=1e-5, mh_max=1e19):
     z_grid = np.linspace(z_min, z_max, 200)
     log10_mh_grid = np.linspace(np.log10(mh_min), np.log10(mh_max), 200)
     
